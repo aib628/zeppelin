@@ -37,7 +37,7 @@ export class HeaderComponent extends MessageListenersManager implements OnInit, 
 
   about() {
     this.nzModalService.create({
-      nzTitle: 'About Zeppelin',
+      nzTitle: 'About Cheetah',
       nzWidth: '600px',
       nzContent: AboutZeppelinComponent,
       nzFooter: null

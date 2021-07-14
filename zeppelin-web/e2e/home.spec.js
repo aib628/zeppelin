@@ -25,7 +25,7 @@ describe('Home e2e Test', function() {
     browser.get('http://localhost:8080');
     var welcomeElem = element(by.id('welcome'))
 
-    expect(welcomeElem.getText()).toEqual('Welcome to Zeppelin!')
+    expect(welcomeElem.getText()).toEqual('Welcome to Cheetah!')
   })
 
   it('should have the button for importing notebook', function() {
