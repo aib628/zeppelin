@@ -51,6 +51,7 @@ import org.apache.zeppelin.interpreter.InterpreterSetting;
 import org.apache.zeppelin.interpreter.ManagedInterpreterGroup;
 import org.apache.zeppelin.interpreter.remote.RemoteInterpreter;
 import org.apache.zeppelin.interpreter.thrift.InterpreterCompletion;
+import org.apache.zeppelin.notebook.injector.ParagraphInjector;
 import org.apache.zeppelin.resource.ResourcePool;
 import org.apache.zeppelin.scheduler.Job;
 import org.apache.zeppelin.scheduler.JobWithProgressPoller;
@@ -466,10 +467,10 @@ public class Paragraph extends JobWithProgressPoller<InterpreterResult> implemen
         InterpreterResult ret = null;
         if (shouldInjectCredentials) {
           UserCredentials creds = context.getAuthenticationInfo().getUserCredentials();
-          CredentialInjector credinjector = new CredentialInjector(creds);
-          String code = credinjector.replaceCredentials(script);
+          ParagraphInjector injector = ParagraphInjector.getInstance(context, interpreter, creds);
+          String code = injector.inject(script);
           ret = interpreter.interpret(code, context);
-          ret = credinjector.hidePasswords(ret);
+          ret = injector.hideCredentialPasswords(ret);
         } else {
           ret = interpreter.interpret(script, context);
         }
