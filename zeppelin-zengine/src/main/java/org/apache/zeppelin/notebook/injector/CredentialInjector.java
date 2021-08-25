@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.zeppelin.notebook;
+package org.apache.zeppelin.notebook.injector;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -33,7 +33,7 @@ import org.apache.zeppelin.user.UsernamePassword;
  * {password.&gt;credentialkey&lt;} tags with the matching credentials from
  * zeppelin
  */
-class CredentialInjector {
+public class CredentialInjector implements Injector{
 
   private Set<String> passwords = new HashSet<>();
   private final UserCredentials creds;
@@ -43,6 +43,11 @@ class CredentialInjector {
 
   public CredentialInjector(UserCredentials creds) {
     this.creds = creds;
+  }
+
+  @Override
+  public String inject(String script, ParagraphInjector injector) {
+    return injector.inject(replaceCredentials(script));
   }
 
   public String replaceCredentials(String code) {
