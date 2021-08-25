@@ -14,15 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.zeppelin.notebook;
+package org.apache.zeppelin.notebook.injector;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
+import org.apache.zeppelin.interpreter.Constants;
 import org.apache.zeppelin.interpreter.InterpreterResult;
 import org.apache.zeppelin.interpreter.InterpreterResultMessage;
 import org.apache.zeppelin.user.UserCredentials;
@@ -33,16 +32,18 @@ import org.apache.zeppelin.user.UsernamePassword;
  * {password.&gt;credentialkey&lt;} tags with the matching credentials from
  * zeppelin
  */
-class CredentialInjector {
+public class CredentialInjector implements Injector{
 
   private Set<String> passwords = new HashSet<>();
   private final UserCredentials creds;
-  private static final Pattern userpattern = Pattern.compile("\\{([^\\}]+)\\.user\\}");
-  private static final Pattern passwordpattern = Pattern.compile("\\{([^\\}]+)\\.password\\}");
-
 
   public CredentialInjector(UserCredentials creds) {
     this.creds = creds;
+  }
+
+  @Override
+  public String inject(String script, ParagraphInjector injector) {
+    return injector.inject(replaceCredentials(script));
   }
 
   public String replaceCredentials(String code) {
@@ -50,7 +51,7 @@ class CredentialInjector {
       return null;
     }
     String replaced = code;
-    Matcher matcher = userpattern.matcher(replaced);
+    Matcher matcher = Constants.USER_PATTERN.matcher(replaced);
     while (matcher.find()) {
       String key = matcher.group(1);
       UsernamePassword usernamePassword = creds.getUsernamePassword(key);
@@ -58,10 +59,10 @@ class CredentialInjector {
         String value = usernamePassword.getUsername();
         String quotedValue = Matcher.quoteReplacement(value);
         replaced = matcher.replaceFirst(quotedValue);
-        matcher = userpattern.matcher(replaced);
+        matcher = Constants.USER_PATTERN.matcher(replaced);
       }
     }
-    matcher = passwordpattern.matcher(replaced);
+    matcher = Constants.PASSWORD_PATTERN.matcher(replaced);
     while (matcher.find()) {
       String key = matcher.group(1);
       UsernamePassword usernamePassword = creds.getUsernamePassword(key);
@@ -70,7 +71,7 @@ class CredentialInjector {
         String value = usernamePassword.getPassword();
         String quotedValue = Matcher.quoteReplacement(value);
         replaced = matcher.replaceFirst(quotedValue);
-        matcher = passwordpattern.matcher(replaced);
+        matcher = Constants.PASSWORD_PATTERN.matcher(replaced);
       }
     }
     return replaced;
