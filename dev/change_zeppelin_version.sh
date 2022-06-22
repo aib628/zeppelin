@@ -63,7 +63,7 @@ sed -i '' 's/"version": "'"${FROM_VERSION}"'",/"version": "'"${TO_VERSION}"'",/g
 sed -i '' 's/Z_VERSION="'"${FROM_VERSION}"'"/Z_VERSION="'"${TO_VERSION}"'"/g' scripts/docker/zeppelin/bin/Dockerfile
 
 # Change docker image version in configuration
-sed -i '' sed 's/zeppelin:'"${OLD_VERSION}"'/zeppelin:'"${NEW_VERSION}"'/g' conf/zeppelin-site.xml.template
+sed -i '' 's/zeppelin:'"${FROM_VERSION}"'/zeppelin:'"${TO_VERSION}"'/g' conf/zeppelin-site.xml.template
 
 # When preparing new dev version from release tag, doesn't need to change docs version
 if is_dev_version "${FROM_VERSION}" || ! is_dev_version "${TO_VERSION}"; then
@@ -73,11 +73,23 @@ if is_dev_version "${FROM_VERSION}" || ! is_dev_version "${TO_VERSION}"; then
     FROM_VERSION=$(echo "${TO_VERSION}" | awk -F. '{ printf("%d.%d.%d", $1, $2, $3-1) }')
   fi
 
+  # Change zeppelin version in notebook examples
+  sed -i '' 's/"version": "'"${FROM_VERSION}"'",/"version": "'"${TO_VERSION}"'",/g' notebook/*/*.zpln
+
+  # Change zeppelin version in other test resource
+  sed -i '' 's/"version": "'"${FROM_VERSION}"'",/"version": "'"${TO_VERSION}"'",/g' zeppelin-interpreter-integration/src/test/resources/Test_Note.zpln
+
   # Change zeppelin version in docs config
   sed -i '' 's/ZEPPELIN_VERSION : '"${FROM_VERSION}"'$/ZEPPELIN_VERSION : '"$TO_VERSION"'/g' docs/_config.yml
   sed -i '' 's/BASE_PATH : \/docs\/'"${FROM_VERSION}"'$/BASE_PATH : \/docs\/'"$TO_VERSION"'/g' docs/_config.yml
 
   # Change interpreter's maven version in docs and interpreter-list
   sed -i '' 's/:'"${FROM_VERSION}"'/:'"${TO_VERSION}"'/g' conf/interpreter-list
+  sed -i '' 's/:'"${FROM_VERSION}"'/:'"${TO_VERSION}"'/g' docs/quickstart/install.md
   sed -i '' 's/:'"${FROM_VERSION}"'/:'"${TO_VERSION}"'/g' docs/usage/interpreter/installation.md
+  sed -i '' 's/:'"${FROM_VERSION}"'/:'"${TO_VERSION}"'/g' docs/interpreter/python.md
+  sed -i '' 's/:'"${FROM_VERSION}"'/:'"${TO_VERSION}"'/g' docs/interpreter/spark.md
+  sed -i '' 's/:'"${FROM_VERSION}"'/:'"${TO_VERSION}"'/g' docs/interpreter/flink.md
+  sed -i '' 's/:'"${FROM_VERSION}"'/:'"${TO_VERSION}"'/g' docs/interpreter/r.md
+  sed -i '' 's#<version>'${FROM_VERSION}'</version>#<version>'${TO_VERSION}'</version>#g' docs/development/writing_zeppelin_interpreter.md
 fi
