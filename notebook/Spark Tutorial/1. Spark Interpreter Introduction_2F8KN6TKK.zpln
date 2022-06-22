@@ -497,7 +497,7 @@
   "name": "1. Spark Interpreter Introduction",
   "id": "2F8KN6TKK",
   "defaultInterpreterGroup": "spark",
-  "version": "0.9.0-SNAPSHOT",
+  "version": "0.10.1",
   "noteParams": {},
   "noteForms": {},
   "angularObjects": {},

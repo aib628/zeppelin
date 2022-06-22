@@ -787,7 +787,7 @@
   "name": "6. Batch ETL",
   "id": "2EW19CSPA",
   "defaultInterpreterGroup": "flink",
-  "version": "0.9.0-SNAPSHOT",
+  "version": "0.10.1",
   "noteParams": {},
   "noteForms": {},
   "angularObjects": {},

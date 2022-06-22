@@ -1274,7 +1274,7 @@
   "name": "3. Spark SQL (Scala)",
   "id": "2EYUV26VR",
   "defaultInterpreterGroup": "spark",
-  "version": "0.9.0-SNAPSHOT",
+  "version": "0.10.1",
   "noteParams": {},
   "noteForms": {},
   "angularObjects": {},

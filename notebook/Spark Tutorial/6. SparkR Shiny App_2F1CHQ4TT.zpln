@@ -263,7 +263,7 @@
   "name": "6. SparkR Shiny App",
   "id": "2F1CHQ4TT",
   "defaultInterpreterGroup": "spark",
-  "version": "0.9.0-SNAPSHOT",
+  "version": "0.10.1",
   "noteParams": {},
   "noteForms": {},
   "angularObjects": {},

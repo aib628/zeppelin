@@ -317,7 +317,7 @@
   "name": "8. Logistic Regression (Alink)",
   "id": "2F4HJNWVN",
   "defaultInterpreterGroup": "flink",
-  "version": "0.9.0-SNAPSHOT",
+  "version": "0.10.1",
   "noteParams": {},
   "noteForms": {},
   "angularObjects": {},

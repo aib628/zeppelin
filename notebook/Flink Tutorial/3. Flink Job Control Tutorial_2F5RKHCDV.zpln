@@ -389,7 +389,7 @@
   "name": "3. Flink Job Control Tutorial",
   "id": "2F5RKHCDV",
   "defaultInterpreterGroup": "flink",
-  "version": "0.9.0-SNAPSHOT",
+  "version": "0.10.1",
   "noteParams": {},
   "noteForms": {},
   "angularObjects": {},

@@ -701,7 +701,7 @@
   "name": "1. IPython Basic",
   "id": "2EYDJKFFY",
   "defaultInterpreterGroup": "spark",
-  "version": "0.9.0-SNAPSHOT",
+  "version": "0.10.1",
   "noteParams": {},
   "noteForms": {},
   "angularObjects": {},

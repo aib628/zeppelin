@@ -398,7 +398,7 @@
   "name": "5. Streaming Data Analytics",
   "id": "2EYT7Q6R8",
   "defaultInterpreterGroup": "flink",
-  "version": "0.9.0-SNAPSHOT",
+  "version": "0.10.1",
   "noteParams": {},
   "noteForms": {},
   "angularObjects": {

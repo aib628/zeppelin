@@ -703,7 +703,7 @@
   "name": "4. Spark MlLib",
   "id": "2EZFM3GJA",
   "defaultInterpreterGroup": "spark",
-  "version": "0.9.0-SNAPSHOT",
+  "version": "0.10.1",
   "noteParams": {},
   "noteForms": {},
   "angularObjects": {},

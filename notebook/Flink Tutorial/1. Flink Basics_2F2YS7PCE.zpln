@@ -179,7 +179,7 @@
   "name": "1. Flink Basics",
   "id": "2F2YS7PCE",
   "defaultInterpreterGroup": "flink",
-  "version": "0.9.0-SNAPSHOT",
+  "version": "0.10.1",
   "noteParams": {},
   "noteForms": {},
   "angularObjects": {},

@@ -828,7 +828,7 @@
   "name": "7. Batch Data Analytics",
   "id": "2EZ9G3JJU",
   "defaultInterpreterGroup": "flink",
-  "version": "0.9.0-SNAPSHOT",
+  "version": "0.10.1",
   "noteParams": {},
   "noteForms": {},
   "angularObjects": {},

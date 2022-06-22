@@ -339,7 +339,7 @@
   "name": "4. Streaming ETL",
   "id": "2EYD56B9B",
   "defaultInterpreterGroup": "flink",
-  "version": "0.9.0-SNAPSHOT",
+  "version": "0.10.1",
   "noteParams": {},
   "noteForms": {},
   "angularObjects": {},
