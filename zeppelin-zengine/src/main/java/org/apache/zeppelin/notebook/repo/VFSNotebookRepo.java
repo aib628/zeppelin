@@ -155,7 +155,7 @@ public class VFSNotebookRepo implements NotebookRepo {
 
   @Override
   public synchronized void save(Note note, AuthenticationInfo subject) throws IOException {
-    LOGGER.info("Saving note {} to {}", note.getId(), buildNoteFileName(note));
+    LOGGER.debug("Saving note {} to {}", note.getId(), buildNoteFileName(note));
     // write to tmp file first, then rename it to the {note_name}_{note_id}.zpln
     FileObject noteJson = rootNotebookFileObject.resolveFile(
         buildNoteTempFileName(note), NameScope.DESCENDENT);
