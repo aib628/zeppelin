@@ -74,10 +74,13 @@ public class LocalRecoveryStorage extends RecoveryStorage {
   public Map<String, InterpreterClient> restore() throws IOException {
     Map<String, InterpreterClient> clients = new HashMap<>();
     File[] recoveryFiles = recoveryDir.listFiles(file -> file.getName().endsWith(".recovery"));
+    if (recoveryFiles == null) {
+      return clients;
+    }
+
     for (File recoveryFile : recoveryFiles) {
       String fileName = recoveryFile.getName();
-      String interpreterSettingName = fileName.substring(0,
-              fileName.length() - ".recovery".length());
+      String interpreterSettingName = fileName.substring(0, fileName.length() - ".recovery".length());
       String recoveryData = org.apache.zeppelin.util.FileUtils.readFromFile(recoveryFile);
       clients.putAll(RecoveryUtils.restoreFromRecoveryData(
               recoveryData, interpreterSettingName, interpreterSettingManager, zConf));

@@ -17,12 +17,11 @@
 
 package org.apache.zeppelin.interpreter.recovery;
 
-import org.apache.zeppelin.conf.ZeppelinConfiguration;
-import org.apache.zeppelin.interpreter.launcher.InterpreterClient;
-
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.zeppelin.conf.ZeppelinConfiguration;
+import org.apache.zeppelin.interpreter.launcher.InterpreterClient;
 
 
 /**
@@ -73,7 +72,7 @@ public abstract class RecoveryStorage {
    * @throws IOException
    */
   public void init() throws IOException {
-    Map<String, InterpreterClient> restoredClientsInStorage= restore();
+    Map<String, InterpreterClient> restoredClientsInStorage = restore();
     this.restoredClients = new HashMap<String, InterpreterClient>();
     for (Map.Entry<String, InterpreterClient> entry : restoredClientsInStorage.entrySet()) {
       if (entry.getValue().recover()) {
@@ -92,11 +91,7 @@ public abstract class RecoveryStorage {
    * @return InterpreterClient
    */
   public InterpreterClient getInterpreterClient(String interpreterGroupId) {
-    if (restoredClients.containsKey(interpreterGroupId)) {
-      return restoredClients.get(interpreterGroupId);
-    } else {
-      return null;
-    }
+    return restoredClients.getOrDefault(interpreterGroupId, null);
   }
 
   public void removeInterpreterClient(String interpreterGroupId) {
