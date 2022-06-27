@@ -23,6 +23,7 @@ import org.apache.zeppelin.conf.ZeppelinConfiguration;
 import org.apache.zeppelin.interpreter.InterpreterSetting;
 import org.apache.zeppelin.interpreter.InterpreterSettingManager;
 import org.apache.zeppelin.interpreter.ManagedInterpreterGroup;
+import org.apache.zeppelin.interpreter.RemoteInterpreterEventServer;
 import org.apache.zeppelin.interpreter.launcher.InterpreterClient;
 import org.apache.zeppelin.interpreter.remote.RemoteInterpreterProcess;
 import org.apache.zeppelin.interpreter.remote.RemoteInterpreterRunningProcess;
@@ -90,15 +91,16 @@ public class RecoveryUtils {
         String[] tokens = line.split("\t");
         String interpreterGroupId = tokens[0];
         String[] hostPort = tokens[1].split(":");
+        RemoteInterpreterEventServer interpreterEventServer = interpreterSettingManager.getInterpreterEventServer();
 
         RemoteInterpreterRunningProcess client = new RemoteInterpreterRunningProcess(
                 interpreterSettingName, interpreterGroupId, connectTimeout, connectionPoolSize,
-                interpreterSettingManager.getInterpreterEventServer().getHost(),
-                interpreterSettingManager.getInterpreterEventServer().getPort(),
+                interpreterEventServer.getHost(), interpreterEventServer.getPort(),
                 hostPort[0], Integer.parseInt(hostPort[1]), true);
+
         clients.put(interpreterGroupId, client);
-        LOGGER.info("Recovering Interpreter Process: " + interpreterGroupId + ", " +
-                hostPort[0] + ":" + hostPort[1]);
+        LOGGER.info("Recovering Interpreter Process: {},{}:{} by interpreter event server {}:{}", interpreterGroupId,
+                hostPort[0], hostPort[1], interpreterEventServer.getHost(), interpreterEventServer.getPort());
       }
     }
 
