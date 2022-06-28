@@ -47,7 +47,8 @@ public class SimpleServiceCallback<T> implements ServiceCallback<T> {
     if (ex.getCause() != null) {
       message += ", cause: " + ex.getCause().getMessage();
     }
-    LOGGER.warn(message);
+
+    LOGGER.warn(message, ex);
   }
 
 }
