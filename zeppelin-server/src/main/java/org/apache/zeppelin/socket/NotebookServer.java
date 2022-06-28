@@ -44,6 +44,8 @@ import org.apache.zeppelin.cluster.ClusterManagerServer;
 import org.apache.zeppelin.cluster.event.ClusterEvent;
 import org.apache.zeppelin.cluster.event.ClusterEventListener;
 import org.apache.zeppelin.cluster.event.ClusterMessage;
+import org.apache.zeppelin.common.Message;
+import org.apache.zeppelin.common.Message.OP;
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
 import org.apache.zeppelin.display.AngularObject;
 import org.apache.zeppelin.display.AngularObjectRegistry;
@@ -61,6 +63,7 @@ import org.apache.zeppelin.interpreter.thrift.InterpreterCompletion;
 import org.apache.zeppelin.interpreter.thrift.ParagraphInfo;
 import org.apache.zeppelin.interpreter.thrift.ServiceException;
 import org.apache.zeppelin.jupyter.JupyterUtil;
+import org.apache.zeppelin.notebook.AuthorizationService;
 import org.apache.zeppelin.notebook.Note;
 import org.apache.zeppelin.notebook.NoteEventListener;
 import org.apache.zeppelin.notebook.NoteInfo;
@@ -68,10 +71,7 @@ import org.apache.zeppelin.notebook.Notebook;
 import org.apache.zeppelin.notebook.NotebookImportDeserializer;
 import org.apache.zeppelin.notebook.Paragraph;
 import org.apache.zeppelin.notebook.ParagraphJobListener;
-import org.apache.zeppelin.notebook.AuthorizationService;
 import org.apache.zeppelin.notebook.repo.NotebookRepoWithVersionControl.Revision;
-import org.apache.zeppelin.common.Message;
-import org.apache.zeppelin.common.Message.OP;
 import org.apache.zeppelin.rest.exception.ForbiddenException;
 import org.apache.zeppelin.scheduler.Job.Status;
 import org.apache.zeppelin.service.ConfigurationService;
@@ -810,7 +810,8 @@ public class NotebookServer extends WebSocketServlet
 
   private void getNote(NotebookSocket conn, ServiceContext context, Message fromMessage) throws IOException {
     String noteId = (String) fromMessage.get("id");
-    if (noteId == null) {
+    if (noteId == null || noteId.length() == 0) {
+      LOG.warn("Received empty noteId message, skip default.");
       return;
     }
     getNotebookService().getNote(noteId, context,

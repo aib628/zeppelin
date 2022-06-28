@@ -19,10 +19,6 @@
 package org.apache.zeppelin.service;
 
 
-import static org.apache.zeppelin.conf.ZeppelinConfiguration.ConfVars.ZEPPELIN_NOTEBOOK_HOMESCREEN;
-import static org.apache.zeppelin.interpreter.InterpreterResult.Code.ERROR;
-import static org.apache.zeppelin.scheduler.Job.Status.ABORT;
-
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -36,25 +32,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.inject.Inject;
-
 import org.apache.commons.lang3.StringUtils;
+import org.apache.zeppelin.common.Message;
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
 import org.apache.zeppelin.display.AngularObject;
 import org.apache.zeppelin.display.AngularObjectRegistry;
 import org.apache.zeppelin.interpreter.InterpreterResult;
 import org.apache.zeppelin.interpreter.InterpreterSetting;
 import org.apache.zeppelin.interpreter.thrift.InterpreterCompletion;
+import org.apache.zeppelin.notebook.AuthorizationService;
 import org.apache.zeppelin.notebook.Note;
 import org.apache.zeppelin.notebook.NoteInfo;
 import org.apache.zeppelin.notebook.NoteManager;
 import org.apache.zeppelin.notebook.Notebook;
 import org.apache.zeppelin.notebook.Paragraph;
-import org.apache.zeppelin.notebook.AuthorizationService;
 import org.apache.zeppelin.notebook.exception.CorruptedNoteException;
 import org.apache.zeppelin.notebook.exception.NotePathAlreadyExistsException;
 import org.apache.zeppelin.notebook.repo.NotebookRepoWithVersionControl;
 import org.apache.zeppelin.notebook.scheduler.SchedulerService;
-import org.apache.zeppelin.common.Message;
 import org.apache.zeppelin.rest.exception.BadRequestException;
 import org.apache.zeppelin.rest.exception.ForbiddenException;
 import org.apache.zeppelin.rest.exception.NoteNotFoundException;
@@ -64,6 +59,10 @@ import org.apache.zeppelin.user.AuthenticationInfo;
 import org.bitbucket.cowwoc.diffmatchpatch.DiffMatchPatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.zeppelin.conf.ZeppelinConfiguration.ConfVars.ZEPPELIN_NOTEBOOK_HOMESCREEN;
+import static org.apache.zeppelin.interpreter.InterpreterResult.Code.ERROR;
+import static org.apache.zeppelin.scheduler.Job.Status.ABORT;
 
 
 /**
@@ -127,12 +126,12 @@ public class NotebookService {
                       ServiceCallback<Note> callback) throws IOException {
     Note note = notebook.getNote(noteId, reload);
     if (note == null) {
+      LOGGER.warn("Note not found : {}", noteId);
       callback.onFailure(new NoteNotFoundException(noteId), context);
       return null;
     }
 
-    if (!checkPermission(noteId, Permission.READER, Message.OP.GET_NOTE, context,
-        callback)) {
+    if (!checkPermission(noteId, Permission.READER, Message.OP.GET_NOTE, context, callback)) {
       return null;
     }
     if (note.isPersonalizedMode()) {
