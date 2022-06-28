@@ -136,6 +136,7 @@ public class NotebookService {
     return notebook.processNote(noteId, reload,
       note -> {
         if (note == null) {
+          LOGGER.warn("Note not found : {}", noteId);
           callback.onFailure(new NoteNotFoundException(noteId), context);
           return null;
         }
