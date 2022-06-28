@@ -869,7 +869,8 @@ public class NotebookServer implements AngularObjectRegistryListener,
 
   private void getNote(NotebookSocket conn, ServiceContext context, Message fromMessage) throws IOException {
     String noteId = (String) fromMessage.get("id");
-    if (noteId == null) {
+    if (noteId == null || noteId.length() == 0) {
+      LOG.warn("Received empty noteId message, skip default.");
       return;
     }
     getNotebookService().getNote(noteId, context,
