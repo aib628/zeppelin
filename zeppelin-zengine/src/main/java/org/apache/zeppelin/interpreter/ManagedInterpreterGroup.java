@@ -41,7 +41,7 @@ public class ManagedInterpreterGroup extends InterpreterGroup {
 
   private InterpreterSetting interpreterSetting;
   private RemoteInterpreterProcess remoteInterpreterProcess; // attached remote interpreter process
-  private Object interpreterProcessCreationLock = new Object();
+  private final Object interpreterProcessCreationLock = new Object();
 
   /**
    * Create InterpreterGroup with given id and interpreterSetting, used in ZeppelinServer
@@ -57,18 +57,16 @@ public class ManagedInterpreterGroup extends InterpreterGroup {
     return interpreterSetting;
   }
 
-  public RemoteInterpreterProcess getOrCreateInterpreterProcess(String userName,
-                                                                Properties properties)
+  public RemoteInterpreterProcess getOrCreateInterpreterProcess(String userName, Properties properties)
       throws IOException {
     synchronized (interpreterProcessCreationLock) {
       if (remoteInterpreterProcess == null) {
         LOGGER.info("Create InterpreterProcess for InterpreterGroup: {}", getId());
-        remoteInterpreterProcess = interpreterSetting.createInterpreterProcess(id, userName,
-                properties);
+        remoteInterpreterProcess = interpreterSetting.createInterpreterProcess(id, userName, properties);
         remoteInterpreterProcess.start(userName);
         remoteInterpreterProcess.init(ZeppelinConfiguration.create());
-        getInterpreterSetting().getRecoveryStorage()
-                .onInterpreterClientStart(remoteInterpreterProcess);
+
+        getInterpreterSetting().getRecoveryStorage().onInterpreterClientStart(remoteInterpreterProcess);
       }
       return remoteInterpreterProcess;
     }

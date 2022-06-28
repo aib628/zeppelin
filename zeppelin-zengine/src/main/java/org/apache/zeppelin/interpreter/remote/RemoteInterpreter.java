@@ -20,6 +20,10 @@ package org.apache.zeppelin.interpreter.remote;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import org.apache.thrift.TException;
 import org.apache.zeppelin.display.AngularObject;
 import org.apache.zeppelin.display.AngularObjectRegistry;
@@ -30,7 +34,6 @@ import org.apache.zeppelin.interpreter.Interpreter;
 import org.apache.zeppelin.interpreter.InterpreterContext;
 import org.apache.zeppelin.interpreter.InterpreterException;
 import org.apache.zeppelin.interpreter.InterpreterResult;
-import org.apache.zeppelin.interpreter.LifecycleManager;
 import org.apache.zeppelin.interpreter.ManagedInterpreterGroup;
 import org.apache.zeppelin.interpreter.thrift.InterpreterCompletion;
 import org.apache.zeppelin.interpreter.thrift.RemoteInterpreterContext;
@@ -43,11 +46,6 @@ import org.apache.zeppelin.scheduler.Scheduler;
 import org.apache.zeppelin.scheduler.SchedulerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
 
 /**
  * Proxy for Interpreter instance that runs on separate process
@@ -96,12 +94,17 @@ public class RemoteInterpreter extends Interpreter {
     return this.sessionId;
   }
 
-  public synchronized RemoteInterpreterProcess getOrCreateInterpreterProcess() throws IOException {
+  public synchronized RemoteInterpreterProcess getOrCreateInterpreterProcess() throws InterpreterException {
     if (this.interpreterProcess != null) {
       return this.interpreterProcess;
     }
-    ManagedInterpreterGroup intpGroup = getInterpreterGroup();
-    this.interpreterProcess = intpGroup.getOrCreateInterpreterProcess(getUserName(), properties);
+
+    try {
+      this.interpreterProcess = getInterpreterGroup().getOrCreateInterpreterProcess(getUserName(), properties);
+    } catch (IOException e) {
+      throw new InterpreterException("Get or create interpreter process failed: " + className + "_" + sessionId, e);
+    }
+
     return interpreterProcess;
   }
 
@@ -116,11 +119,10 @@ public class RemoteInterpreter extends Interpreter {
       if (!isOpened) {
         // create all the interpreters of the same session first, then Open the internal interpreter
         // of this RemoteInterpreter.
-        // The why we we create all the interpreter of the session is because some interpreter
+        // The why we create all the interpreter of the session is because some interpreter
         // depends on other interpreter. e.g. PySparkInterpreter depends on SparkInterpreter.
         // also see method Interpreter.getInterpreterInTheSameSessionByClassName
-        for (Interpreter interpreter : getInterpreterGroup()
-                                        .getOrCreateSession(this.getUserName(), sessionId)) {
+        for (Interpreter interpreter : getInterpreterGroup().getOrCreateSession(this.getUserName(), sessionId)) {
           try {
             if (!(interpreter instanceof ConfInterpreter)) {
               ((RemoteInterpreter) interpreter).internal_create();
@@ -131,7 +133,7 @@ public class RemoteInterpreter extends Interpreter {
         }
 
         interpreterProcess.callRemoteFunction(client -> {
-          LOGGER.info("Open RemoteInterpreter {}", getClassName());
+          LOGGER.info("Open RemoteInterpreter {}_{}", getClassName(), getSessionId());
           // open interpreter here instead of in the jobRun method in RemoteInterpreterServer
           // client.open(sessionId, className);
           // Push angular object loaded from JSON file to remote interpreter
@@ -143,48 +145,44 @@ public class RemoteInterpreter extends Interpreter {
           }
           return null;
         });
+
         isOpened = true;
       }
     }
   }
 
-  private void internal_create() throws IOException {
+  private void internal_create() throws IOException, InterpreterException {
     synchronized (this) {
       if (!isCreated) {
         this.interpreterProcess = getOrCreateInterpreterProcess();
         if (!interpreterProcess.isRunning()) {
-          throw new IOException("Interpreter process is not running\n" +
-                  interpreterProcess.getErrorMessage());
+          throw new IOException("Interpreter process is not running\n" + interpreterProcess.getErrorMessage());
         }
+
         interpreterProcess.callRemoteFunction(client -> {
-          LOGGER.info("Create RemoteInterpreter {}", getClassName());
-          client.createInterpreter(getInterpreterGroup().getId(), sessionId,
-              className, (Map) properties, getUserName());
+          LOGGER.info("Create RemoteInterpreter {}_{}", getClassName(), sessionId);
+          client.createInterpreter(getInterpreterGroup().getId(), sessionId, className, (Map) properties, getUserName());
           return null;
         });
+
         isCreated = true;
       }
     }
   }
 
-
   @Override
   public void close() throws InterpreterException {
-    if (isOpened) {
-      RemoteInterpreterProcess interpreterProcess = null;
-      try {
-        interpreterProcess = getOrCreateInterpreterProcess();
-      } catch (IOException e) {
-        throw new InterpreterException(e);
-      }
-      interpreterProcess.callRemoteFunction(client -> {
-        client.close(sessionId, className);
-        return null;
-      });
-      isOpened = false;
-    } else {
-      LOGGER.warn("close is called when RemoterInterpreter is not opened for {}", className);
+    if (!isOpened) {
+      LOGGER.warn("close is called when RemoterInterpreter is not opened for {}_{}", className, sessionId);
+      return;
     }
+
+    getOrCreateInterpreterProcess().callRemoteFunction(client -> {
+      client.close(sessionId, className);
+      return null;
+    });
+
+    isOpened = false;
   }
 
   @Override
@@ -194,21 +192,16 @@ public class RemoteInterpreter extends Interpreter {
       LOGGER.debug("st:\n{}", st);
     }
 
-    final FormType form = getFormType();
-    RemoteInterpreterProcess interpreterProcess = null;
-    try {
-      interpreterProcess = getOrCreateInterpreterProcess();
-    } catch (IOException e) {
-      throw new InterpreterException(e);
-    }
+    RemoteInterpreterProcess interpreterProcess = getOrCreateInterpreterProcess();
     if (!interpreterProcess.isRunning()) {
       return new InterpreterResult(InterpreterResult.Code.ERROR,
               "Interpreter process is not running\n" + interpreterProcess.getErrorMessage());
     }
+
+    final FormType form = getFormType();
     return interpreterProcess.callRemoteFunction(client -> {
-          RemoteInterpreterResult remoteResult = client.interpret(
-              sessionId, className, st, convert(context));
-          Map<String, Object> remoteConfig = (Map<String, Object>) GSON.fromJson(
+          RemoteInterpreterResult remoteResult = client.interpret(sessionId, className, st, convert(context));
+          Map<String, Object> remoteConfig = GSON.fromJson(
               remoteResult.getConfig(), new TypeToken<Map<String, Object>>() {
               }.getType());
           context.getConfig().clear();
@@ -244,16 +237,11 @@ public class RemoteInterpreter extends Interpreter {
   @Override
   public void cancel(final InterpreterContext context) throws InterpreterException {
     if (!isOpened) {
-      LOGGER.warn("Cancel is called when RemoterInterpreter is not opened for {}", className);
+      LOGGER.warn("Cancel is called when RemoterInterpreter is not opened for {}_{}", className, sessionId);
       return;
     }
-    RemoteInterpreterProcess interpreterProcess = null;
-    try {
-      interpreterProcess = getOrCreateInterpreterProcess();
-    } catch (IOException e) {
-      throw new InterpreterException(e);
-    }
-    interpreterProcess.callRemoteFunction(client -> {
+
+    getOrCreateInterpreterProcess().callRemoteFunction(client -> {
       client.cancel(sessionId, className, convert(context));
       return null;
     });
@@ -271,70 +259,52 @@ public class RemoteInterpreter extends Interpreter {
         open();
       }
     }
-    RemoteInterpreterProcess interpreterProcess = null;
-    try {
-      interpreterProcess = getOrCreateInterpreterProcess();
-    } catch (IOException e) {
-      throw new InterpreterException(e);
-    }
 
-    return interpreterProcess.callRemoteFunction(client -> {
+    return getOrCreateInterpreterProcess().callRemoteFunction(client -> {
           formType = FormType.valueOf(client.getFormType(sessionId, className));
           return formType;
     });
   }
 
-
   @Override
   public int getProgress(final InterpreterContext context) throws InterpreterException {
     if (!isOpened) {
-      LOGGER.warn("getProgress is called when RemoterInterpreter is not opened for {}", className);
+      LOGGER.warn("getProgress is called when RemoterInterpreter is not opened for {}_{}", className, sessionId);
       return 0;
     }
-    RemoteInterpreterProcess interpreterProcess = null;
-    try {
-      interpreterProcess = getOrCreateInterpreterProcess();
-    } catch (IOException e) {
-      throw new InterpreterException(e);
-    }
-    return interpreterProcess.callRemoteFunction(client ->
-            client.getProgress(sessionId, className, convert(context)));
-  }
 
+    return getOrCreateInterpreterProcess().callRemoteFunction(client ->
+            client.getProgress(sessionId, className, convert(context))
+    );
+  }
 
   @Override
   public List<InterpreterCompletion> completion(final String buf, final int cursor,
-                                                final InterpreterContext interpreterContext)
-      throws InterpreterException {
+                                                final InterpreterContext interpreterContext) throws InterpreterException {
     if (!isOpened) {
       open();
     }
-    RemoteInterpreterProcess interpreterProcess = null;
-    try {
-      interpreterProcess = getOrCreateInterpreterProcess();
-    } catch (IOException e) {
-      throw new InterpreterException(e);
-    }
-    return interpreterProcess.callRemoteFunction(client ->
-            client.completion(sessionId, className, buf, cursor, convert(interpreterContext)));
+
+    return getOrCreateInterpreterProcess().callRemoteFunction(client ->
+            client.completion(sessionId, className, buf, cursor, convert(interpreterContext))
+    );
   }
 
   public String getStatus(final String jobId) {
     if (!isOpened) {
-      LOGGER.warn("getStatus is called when RemoteInterpreter is not opened for {}", className);
+      LOGGER.warn("GetStatus is called when RemoterInterpreter is not opened for {}_{}", className, sessionId);
       return Job.Status.UNKNOWN.name();
     }
-    RemoteInterpreterProcess interpreterProcess = null;
-    try {
-      interpreterProcess = getOrCreateInterpreterProcess();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-    return interpreterProcess.callRemoteFunction(client -> {
-      return client.getStatus(sessionId, jobId);
-    });
-  }
 
+    try {
+      this.interpreterProcess = getOrCreateInterpreterProcess();
+    } catch (InterpreterException e) {
+      LOGGER.warn("GetStatus failed when get interpreter process", e);
+      return Job.Status.UNKNOWN.name();
+    }
+
+    return interpreterProcess.callRemoteFunction(client -> client.getStatus(sessionId, jobId));
+  }
 
   @Override
   public Scheduler getScheduler() {
