@@ -65,6 +65,7 @@ public class RemoteInterpreterEventClient implements ResourcePoolConnector,
 
   public RemoteInterpreterEventClient(String intpEventHost, int intpEventPort, int connectionPoolSize) {
     this.remoteClient = new PooledRemoteClient<>(() -> {
+      LOGGER.info("Opening remote interpreter event server transport at {}:{} for {}", intpEventHost, intpEventPort, intpGroupId);
       TSocket transport = new TSocket(intpEventHost, intpEventPort);
       try {
         transport.open();
@@ -122,7 +123,7 @@ public class RemoteInterpreterEventClient implements ResourcePoolConnector,
       }
       return resourceSet;
     } catch (Exception e) {
-      LOGGER.warn("Fail to getAllResources", e);
+      LOGGER.warn("Fail to getAllResources, intpGroupId: {}", intpGroupId, e);
       return null;
     }
   }
@@ -145,7 +146,7 @@ public class RemoteInterpreterEventClient implements ResourcePoolConnector,
       ByteBuffer buffer = callRemoteFunction(client -> client.getResource(resourceId.toJson()));
       return Resource.deserializeObject(buffer);
     } catch (IOException | ClassNotFoundException e) {
-      LOGGER.warn("Fail to readResource: {}", resourceId, e);
+      LOGGER.warn("Fail to readResource: {}", resourceId.getName(), e);
       return null;
     }
   }
@@ -165,7 +166,7 @@ public class RemoteInterpreterEventClient implements ResourcePoolConnector,
       String methodName,
       Class[] paramTypes,
       Object[] params) {
-    LOGGER.debug("Request Invoke method {} of Resource {}", methodName, resourceId.getName());
+    LOGGER.debug("Request Invoke method: {} of Resource: {}", methodName, resourceId.getName());
 
     InvokeResourceMethodEventMessage invokeMethod = new InvokeResourceMethodEventMessage(
             resourceId,
@@ -177,7 +178,7 @@ public class RemoteInterpreterEventClient implements ResourcePoolConnector,
       ByteBuffer buffer = callRemoteFunction(client -> client.invokeMethod(intpGroupId, invokeMethod.toJson()));
       return Resource.deserializeObject(buffer);
     } catch (IOException | ClassNotFoundException e) {
-      LOGGER.error("Failed to invoke method", e);
+      LOGGER.error("Failed to invoke method: {} of Resource: {}, intpGroupId: {}", methodName, resourceId.getName(), intpGroupId, e);
       return null;
     }
   }
@@ -199,7 +200,7 @@ public class RemoteInterpreterEventClient implements ResourcePoolConnector,
       Class[] paramTypes,
       Object[] params,
       String returnResourceName) {
-    LOGGER.debug("Request Invoke method {} of Resource {}", methodName, resourceId.getName());
+    LOGGER.debug("Request Invoke method: {} of Resource: {}", methodName, resourceId.getName());
 
     InvokeResourceMethodEventMessage invokeMethod = new InvokeResourceMethodEventMessage(
             resourceId,
@@ -216,7 +217,7 @@ public class RemoteInterpreterEventClient implements ResourcePoolConnector,
 
       return remoteResource;
     } catch (IOException | ClassNotFoundException e) {
-      LOGGER.error("Failed to invoke method", e);
+      LOGGER.error("Failed to invoke method: {} of Resource {}, intpGroupId: {}", methodName, resourceId.getName(), intpGroupId, e);
       return null;
     }
   }
@@ -230,7 +231,7 @@ public class RemoteInterpreterEventClient implements ResourcePoolConnector,
         return null;
       });
     } catch (Exception e) {
-      LOGGER.warn("Fail to appendOutput", e);
+      LOGGER.warn("Fail to appendOutput for noteId: {}, paragraphId: {}", noteId, paragraphId, e);
     }
   }
 
@@ -245,7 +246,7 @@ public class RemoteInterpreterEventClient implements ResourcePoolConnector,
       });
 
     } catch (Exception e) {
-      LOGGER.warn("Fail to updateOutput", e);
+      LOGGER.warn("Fail to updateOutput for noteId: {}, paragraphId: {}", noteId, paragraphId, e);
     }
   }
 
@@ -259,7 +260,7 @@ public class RemoteInterpreterEventClient implements ResourcePoolConnector,
       });
 
     } catch (Exception e) {
-      LOGGER.warn("Fail to updateAllOutput", e);
+      LOGGER.warn("Fail to updateAllOutput for noteId: {}, paragraphId: {}", noteId, paragraphId, e);
     }
   }
 
@@ -353,7 +354,7 @@ public class RemoteInterpreterEventClient implements ResourcePoolConnector,
         return null;
       });
     } catch (Exception e) {
-      LOGGER.warn("Fail to onParaInfosReceived: {}", infos, e);
+      LOGGER.warn("Fail to onParaInfosReceived: {} of intpGroupId: {}", infos, intpGroupId, e);
     }
   }
 
@@ -365,7 +366,7 @@ public class RemoteInterpreterEventClient implements ResourcePoolConnector,
         return null;
       });
     } catch (Exception e) {
-      LOGGER.warn("Fail to add AngularObject: {}", angularObject, e);
+      LOGGER.warn("Fail to add AngularObject: {} of intpGroupId: {}", angularObject, intpGroupId, e);
     }
   }
 
@@ -377,7 +378,7 @@ public class RemoteInterpreterEventClient implements ResourcePoolConnector,
         return null;
       });
     } catch (Exception e) {
-      LOGGER.warn("Fail to update AngularObject: {}", angularObject, e);
+      LOGGER.warn("Fail to update AngularObject: {} of intpGroupId: {}", angularObject, intpGroupId, e);
     }
   }
 
@@ -392,7 +393,7 @@ public class RemoteInterpreterEventClient implements ResourcePoolConnector,
         return null;
       });
     } catch (Exception e) {
-      LOGGER.warn("Fail to remove AngularObject", e);
+      LOGGER.warn("Fail to remove AngularObject: {} of intpGroupId: {}", angularObject, intpGroupId, e);
     }
   }
 
@@ -403,7 +404,7 @@ public class RemoteInterpreterEventClient implements ResourcePoolConnector,
         return null;
       });
     } catch (Exception e) {
-      LOGGER.warn("Fail to updateParagraphConfig", e);
+      LOGGER.warn("Fail to updateParagraphConfig for noteId: {}, paragraphId: {}", noteId, paragraphId, e);
     }
   }
 
