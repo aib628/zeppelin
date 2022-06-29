@@ -53,15 +53,20 @@ public abstract class RemoteInterpreterProcess implements InterpreterClient, Aut
     this.intpEventServerPort = intpEventServerPort;
     this.startTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
     this.remoteClient = new PooledRemoteClient<>(() -> {
+      LOGGER.info("Opening remote interpreter server transport at {}:{}", getHost(), getPort());
       TSocket transport = new TSocket(getHost(), getPort());
       try {
         transport.open();
       } catch (TTransportException e) {
         throw new IOException(e);
       }
-      TProtocol protocol = new  TBinaryProtocol(transport);
+      TProtocol protocol = new TBinaryProtocol(transport);
       return new Client(protocol);
     }, connectionPoolSize);
+  }
+
+  public <R> R callRemoteFunction(PooledRemoteClient.RemoteFunction<R, Client> func) {
+    return remoteClient.callRemoteFunction(func);
   }
 
   public int getConnectTimeout() {
@@ -86,18 +91,11 @@ public abstract class RemoteInterpreterProcess implements InterpreterClient, Aut
    * @param name
    * @param o
    */
-  public void updateRemoteAngularObject(String name,
-                                        String noteId,
-                                        String paragraphId,
-                                        Object o) {
-    remoteClient.callRemoteFunction(client -> {
-       client.angularObjectUpdate(name, noteId, paragraphId, GSON.toJson(o));
-       return null;
+  public void updateRemoteAngularObject(String name, String noteId, String paragraphId, Object o) {
+    callRemoteFunction(client -> {
+      client.angularObjectUpdate(name, noteId, paragraphId, GSON.toJson(o));
+      return null;
     });
-  }
-
-  public <R> R callRemoteFunction(PooledRemoteClient.RemoteFunction<R, Client> func) {
-    return remoteClient.callRemoteFunction(func);
   }
 
   public void init(ZeppelinConfiguration zConf) {
@@ -110,17 +108,18 @@ public abstract class RemoteInterpreterProcess implements InterpreterClient, Aut
   @Override
   public boolean recover() {
     try {
-      remoteClient.callRemoteFunction(client -> {
+      callRemoteFunction(client -> {
+        LOGGER.info("Recovering connect of remote interpreter server {}:{} from {}:{}",
+                getHost(), getPort(), intpEventServerHost, intpEventServerPort);
         client.reconnect(intpEventServerHost, intpEventServerPort);
         return null;
       });
       return true;
     } catch (Exception e) {
-      LOGGER.error("Fail to recover remote interpreter process: {}" , e.getMessage());
+      LOGGER.error("Fail to recover remote interpreter process {}:{}", getHost(), getPort(), e);
       return false;
     }
   }
-
 
   /**
    * called by RemoteInterpreterEventServer to notify that RemoteInterpreter Process is started
