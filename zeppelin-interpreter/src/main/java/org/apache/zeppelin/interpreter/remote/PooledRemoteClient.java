@@ -75,14 +75,14 @@ public class PooledRemoteClient<T extends TServiceClient> implements AutoCloseab
       try {
         clientPool.returnObject(client);
       } catch (Exception e) {
-        LOGGER.warn("exception occurred during releasing thrift client", e);
+        LOGGER.warn("exception occurred during return thrift client", e);
       }
     }
   }
 
   private void releaseBrokenClient(T client) {
     try {
-      LOGGER.warn("release broken client");
+      LOGGER.warn("releasing broken client...");
       clientPool.invalidateObject(client);
     } catch (Exception e) {
       LOGGER.warn("exception occurred during releasing thrift client", e);
@@ -90,37 +90,49 @@ public class PooledRemoteClient<T extends TServiceClient> implements AutoCloseab
   }
 
   public <R> R callRemoteFunction(RemoteFunction<R, T> func) {
-    boolean broken = false;
-    String errorCause = null;
-    for (int i = 0;i < RETRY_COUNT; ++ i) {
-      T client = null;
-      broken = false;
+    try {
+      return retryableCallRemoteFunction(func);
+    } catch (RuntimeException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private <R> R retryableCallRemoteFunction(RemoteFunction<R, T> func) throws Exception {
+    Exception lastException = null;
+    for (int i = 0; i <= RETRY_COUNT; i++) {
+      boolean clientReleased = false;
+      T client = getClient();
+      if (client == null) {
+        throw new RuntimeException("Failed to get client when call remote function");
+      }
+
       try {
-        client = getClient();
-        if (client != null) {
-          return func.call(client);
-        }
+        return func.call(client);
       } catch (InterpreterRPCException e) {
-        // zeppelin side exception, no need to retry
-        broken = true;
-        errorCause = e.getErrorMessage();
-        break;
-      } catch (Exception e1) {
+        LOGGER.error("Failed to call remote function, for reason: {}", e.getMessage());
+        releaseClient(client, true);
+        clientReleased = true;
+        throw e; // zeppelin side exception, no need to retry
+      } catch (Exception e) {
         // thrift framework exception (maybe due to network issue), need to retry
-        broken = true;
-        continue;
+        LOGGER.error("Failed to retryable call remote function, for reason: {}", e.getMessage());
+        if (e.getMessage() != null && e.getMessage().contains("Broken pipe")) {
+          releaseClient(client, true);
+          clientReleased = true;
+        }
+
+        lastException = e;
       } finally {
-        if (client != null) {
-          releaseClient(client, broken);
+        if (!clientReleased) {
+          releaseClient(client, false);
         }
       }
     }
-    if (broken) {
-      throw new RuntimeException(errorCause);
-    }
-    return null;
-  }
 
+    throw lastException;
+  }
 
   public interface RemoteFunction<R, T> {
     R call(T client) throws InterpreterRPCException, TException;
