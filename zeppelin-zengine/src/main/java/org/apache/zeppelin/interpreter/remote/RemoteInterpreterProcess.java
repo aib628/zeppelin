@@ -121,6 +121,21 @@ public abstract class RemoteInterpreterProcess implements InterpreterClient, Aut
     }
   }
 
+  @Override
+  public boolean reconnect() {
+    try {
+      return callRemoteFunction(client -> {
+        LOGGER.info("Reconnecting remote interpreter server {}:{} from {}:{}",
+                getHost(), getPort(), intpEventServerHost, intpEventServerPort);
+        client.reconnect(intpEventServerHost, intpEventServerPort);
+        return true;
+      });
+    } catch (Exception e) {
+      LOGGER.error("Fail to reconnect remote interpreter process {}:{}", getHost(), getPort(), e);
+      return false;
+    }
+  }
+
   /**
    * called by RemoteInterpreterEventServer to notify that RemoteInterpreter Process is started
    */
