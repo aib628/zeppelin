@@ -86,4 +86,11 @@ public interface InterpreterClient {
    * @return
    */
   boolean recover();
+
+  /**
+   * Try to reconnect to remote interpreter server.
+   *
+   * @return Return true if reconnect successfully, otherwise return false.
+   */
+  boolean reconnect();
 }
