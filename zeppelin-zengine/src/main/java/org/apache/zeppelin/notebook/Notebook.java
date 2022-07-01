@@ -17,6 +17,7 @@
 
 package org.apache.zeppelin.notebook;
 
+import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,8 +33,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.inject.Inject;
-
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
 import org.apache.zeppelin.conf.ZeppelinConfiguration.ConfVars;
 import org.apache.zeppelin.display.AngularObject;
@@ -42,6 +41,7 @@ import org.apache.zeppelin.interpreter.Interpreter;
 import org.apache.zeppelin.interpreter.InterpreterFactory;
 import org.apache.zeppelin.interpreter.InterpreterGroup;
 import org.apache.zeppelin.interpreter.InterpreterNotFoundException;
+import org.apache.zeppelin.interpreter.InterpreterResult;
 import org.apache.zeppelin.interpreter.InterpreterSetting;
 import org.apache.zeppelin.interpreter.InterpreterSettingManager;
 import org.apache.zeppelin.interpreter.ManagedInterpreterGroup;
@@ -125,7 +125,7 @@ public class Notebook {
         try {
           boolean hasRecoveredParagraph = false;
           for (Paragraph paragraph : note.getParagraphs()) {
-            if (paragraph.getStatus() == Job.Status.RUNNING) {
+            if (needRecover(paragraph)) {
               paragraph.recover();
               hasRecoveredParagraph = true;
             }
@@ -148,6 +148,19 @@ public class Notebook {
     } catch (InterruptedException e) {
       e.printStackTrace();
     }
+  }
+
+  private boolean needRecover(Paragraph paragraph) {
+    if (paragraph.getStatus() == Job.Status.RUNNING) {
+      return true;
+    }
+
+    InterpreterResult result = paragraph.getReturn();
+    if (result != null && result.code() == InterpreterResult.Code.ERROR && result.toString().contains("Broken pipe")) {
+      return true;
+    }
+
+    return false;
   }
 
   @Inject
