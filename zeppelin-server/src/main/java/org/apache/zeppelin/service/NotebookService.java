@@ -1285,6 +1285,8 @@ public class NotebookService {
       String paragraphText = p.getText() == null ? "" : p.getText();
       paragraphText = (String) dmp.patchApply(patches, paragraphText)[0];
       p.setText(paragraphText);
+
+      notebook.saveNote(note, context.getAutheInfo());
       callback.onSuccess(patchText, context);
     } catch (IOException e) {
       callback.onFailure(new IOException("Fail to patch", e), context);
