@@ -18,6 +18,9 @@
 
 package org.apache.zeppelin.flink.cmd;
 
+import java.util.Map;
+import java.util.Properties;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.zeppelin.interpreter.InterpreterContext;
 import org.apache.zeppelin.interpreter.InterpreterOutput;
 import org.apache.zeppelin.interpreter.InterpreterOutputListener;
@@ -26,8 +29,6 @@ import org.apache.zeppelin.interpreter.InterpreterResultMessageOutput;
 import org.apache.zeppelin.shell.ShellInterpreter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Properties;
 
 public class FlinkCmdInterpreter extends ShellInterpreter {
 
@@ -47,7 +48,7 @@ public class FlinkCmdInterpreter extends ShellInterpreter {
   public InterpreterResult internalInterpret(String cmd, InterpreterContext context) {
     String flinkCommand = flinkHome + "/bin/flink " + cmd.trim();
     LOGGER.info("Flink command: " + flinkCommand);
-    context.out.addInterpreterOutListener(new FlinkCmdOutputListener(context));
+    context.out.addInterpreterOutListener(new FlinkCmdOutputListener(context, getProperties()));
     return super.internalInterpret(flinkCommand, context);
   }
 
@@ -56,10 +57,14 @@ public class FlinkCmdInterpreter extends ShellInterpreter {
    */
   private static class FlinkCmdOutputListener implements InterpreterOutputListener {
 
+    private Properties properties;
     private InterpreterContext context;
-    private boolean isFlinkUrlSent = false;
+    private boolean isFlinkUrlSent;
+    private String applicationId;
+    private String jobId;
 
-    public FlinkCmdOutputListener(InterpreterContext context) {
+    public FlinkCmdOutputListener(InterpreterContext context, Properties properties) {
+      this.properties = properties;
       this.context = context;
     }
 
@@ -70,21 +75,56 @@ public class FlinkCmdInterpreter extends ShellInterpreter {
 
     @Override
     public void onAppend(int index, InterpreterResultMessageOutput out, byte[] line) {
-      String text = new String(line);
       if (isFlinkUrlSent) {
         return;
       }
-      if (text.contains("Submitted application")) {
-        // yarn mode, extract yarn proxy url as flink ui link
-        YarnUtils.buildFlinkUIInfo(text, context);
+
+      String text = new String(line);
+      if (text.contains("Submitted application") && text.lastIndexOf(" ") > 0) {
+        this.applicationId = text.substring(text.lastIndexOf(" ") + 1); // yarn mode, extract yarn proxy url as flink ui link
+      } else if (text.contains("Job has been submitted with JobID") && text.lastIndexOf(" ") > 0) {
+        this.jobId = text.substring(text.lastIndexOf(" ") + 1);
+      }
+
+      if (StringUtils.isNoneBlank(applicationId) && StringUtils.isNoneBlank(jobId)) {
+        sendFlinkUrl(applicationId, jobId);
         isFlinkUrlSent = true;
       }
     }
 
-
     @Override
     public void onUpdate(int index, InterpreterResultMessageOutput out) {
 
+    }
+
+    private void sendFlinkUrl(String applicationId, String jobId) {
+      try {
+        Map<String, String> infos = new java.util.HashMap<String, String>();
+        infos.put("jobUrl", getDisplayedJMWebUrl(applicationId) + "#/job/" + jobId);
+        infos.put("label", "Flink UI");
+        infos.put("tooltip", "View in Flink web UI");
+        infos.put("noteId", context.getNoteId());
+        infos.put("paraId", context.getParagraphId());
+        context.getIntpEventClient().onParaInfosReceived(infos);
+      } catch (Exception e) {
+        LOGGER.error("Fail to extract flink url", e);
+      }
+    }
+
+    private String getDisplayedJMWebUrl(String applicationId) {
+      // `zeppelin.flink.uiWebUrl` is flink jm url template, {{applicationId}} will be replaced with real yarn app id.
+      String flinkUIWebUrl = properties.getProperty("zeppelin.flink.uiWebUrl");
+      if (StringUtils.isNotBlank(flinkUIWebUrl)) {
+        return flinkUIWebUrl.replace("{{applicationId}}", applicationId);
+      } else {
+        // YarnClient yarnClient = YarnClient.createYarnClient();
+        // yarnClient.init(new YarnConfiguration());
+        // yarnClient.start();
+
+        // ApplicationReport applicationReport = yarnClient.getApplicationReport(ConverterUtils.toApplicationId(yarnAppId));
+        // return applicationReport.getTrackingUrl();
+        throw new RuntimeException("Flink web UI template is not config: zeppelin.flink.uiWebUrl");
+      }
     }
   }
 }
