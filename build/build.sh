@@ -19,10 +19,11 @@ fi
 #-pl '!groovy,!submarine,!livy,!hbase,!pig,!file,!flink,!ignite,!kylin,!lens,!shell'
 
 cd .. && ./build/apache-maven-3.6.3/bin/mvn clean install $options -DskipTests \
+-Pflink-118 \
 -Pbuild-distr \
 -Phadoop3 \
 -Pspark-scala-2.12 \
--Pspark-3.0 \
+-Pspark-3.2 \
 -Pweb-angular \
 -Dspark.src.download.url='https://archive.apache.org/dist/spark/${spark.archive}/${spark.archive}.tgz' \
 -Dspark.bin.download.url='https://archive.apache.org/dist/spark/${spark.archive}/${spark.archive}-bin-without-hadoop.tgz'
