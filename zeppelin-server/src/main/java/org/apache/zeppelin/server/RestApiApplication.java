@@ -22,6 +22,7 @@ import java.util.Set;
 import javax.ws.rs.core.Application;
 
 import org.apache.zeppelin.rest.AdminRestApi;
+import org.apache.zeppelin.rest.AuthenticationRestApi;
 import org.apache.zeppelin.rest.ClusterRestApi;
 import org.apache.zeppelin.rest.ConfigurationsRestApi;
 import org.apache.zeppelin.rest.CredentialRestApi;
@@ -30,6 +31,7 @@ import org.apache.zeppelin.rest.InterpreterRestApi;
 import org.apache.zeppelin.rest.LoginRestApi;
 import org.apache.zeppelin.rest.NotebookRepoRestApi;
 import org.apache.zeppelin.rest.NotebookRestApi;
+import org.apache.zeppelin.rest.ParagraphRestApi;
 import org.apache.zeppelin.rest.SecurityRestApi;
 import org.apache.zeppelin.rest.SessionRestApi;
 import org.apache.zeppelin.rest.ZeppelinRestApi;
@@ -51,6 +53,8 @@ public class RestApiApplication extends Application {
     s.add(SecurityRestApi.class);
     s.add(SessionRestApi.class);
     s.add(ZeppelinRestApi.class);
+    s.add(ParagraphRestApi.class);
+    s.add(AuthenticationRestApi.class);
 
     // add ExceptionMapper
     s.add(WebApplicationExceptionMapper.class);
