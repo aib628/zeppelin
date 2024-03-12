@@ -19,7 +19,7 @@ fi
 #-pl '!groovy,!submarine,!livy,!hbase,!pig,!file,!flink,!ignite,!kylin,!lens,!shell'
 
 cd .. && ./build/apache-maven-3.6.3/bin/mvn clean install $options -DskipTests \
--Pflink-118 \
+-Pflink-113 \
 -Pbuild-distr \
 -Phadoop3 \
 -Pspark-scala-2.12 \

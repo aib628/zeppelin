@@ -36,8 +36,10 @@ import org.apache.flink.table.api.*;
 import org.apache.flink.table.api.bridge.java.internal.StreamTableEnvironmentImpl;
 import org.apache.flink.table.api.config.TableConfigOptions;
 import org.apache.flink.table.catalog.CatalogManager;
+import org.apache.flink.table.catalog.CatalogStoreHolder;
 import org.apache.flink.table.catalog.FunctionCatalog;
 import org.apache.flink.table.catalog.GenericInMemoryCatalog;
+import org.apache.flink.table.catalog.GenericInMemoryCatalogStore;
 import org.apache.flink.table.catalog.ResolvedSchema;
 import org.apache.flink.table.client.resource.ClientResourceManager;
 import org.apache.flink.table.client.util.ClientClassloaderUtil;
@@ -45,6 +47,7 @@ import org.apache.flink.table.client.util.ClientWrapperClassLoader;
 import org.apache.flink.table.delegation.Executor;
 import org.apache.flink.table.delegation.ExecutorFactory;
 import org.apache.flink.table.delegation.Planner;
+import org.apache.flink.table.delegation.PlannerFactory;
 import org.apache.flink.table.factories.FactoryUtil;
 import org.apache.flink.table.factories.PlannerFactoryUtil;
 import org.apache.flink.table.functions.AggregateFunction;
@@ -189,11 +192,17 @@ public class Flink118Shims extends FlinkShims {
 
   @Override
   public Object createCatalogManager(Object config) {
+    CatalogStoreHolder catalogStoreHolder = CatalogStoreHolder.newBuilder()
+            .classloader(Thread.currentThread().getContextClassLoader())
+            .catalogStore(new GenericInMemoryCatalogStore())
+            .config((ReadableConfig) config)
+            .build();
+
     return CatalogManager.newBuilder()
             .classLoader(Thread.currentThread().getContextClassLoader())
+            .catalogStoreHolder(catalogStoreHolder)
             .config((ReadableConfig) config)
-            .defaultCatalog("default_catalog",
-                    new GenericInMemoryCatalog("default_catalog", "default_database"))
+            .defaultCatalog("default_catalog", new GenericInMemoryCatalog("default_catalog", "default_database"))
             .build();
   }
 
@@ -342,6 +351,12 @@ public class Flink118Shims extends FlinkShims {
     }
   }
 
+  private Planner createPlanner(Executor executor, TableConfig tableConfig, ClassLoader userClassLoader, ModuleManager moduleManager, CatalogManager catalogManager, FunctionCatalog functionCatalog) {
+    PlannerFactory plannerFactory = FactoryUtil.discoverFactory(Thread.currentThread().getContextClassLoader(), PlannerFactory.class, "default");
+    PlannerFactory.Context context = new PlannerFactory.DefaultPlannerContext(executor, tableConfig, userClassLoader, moduleManager, catalogManager, functionCatalog);
+    return plannerFactory.create(context);
+  }
+
   private Object lookupExecutor(ClassLoader classLoader,
                                 Object settings,
                                 Object sEnv) {
@@ -367,8 +382,8 @@ public class Flink118Shims extends FlinkShims {
           ClassLoader classLoader, Object environmentSettings, Object sEnv,
           Object tableConfig, Object moduleManager, Object functionCatalog, Object catalogManager) {
     EnvironmentSettings settings = (EnvironmentSettings) environmentSettings;
-    Executor executor = (Executor) lookupExecutor(classLoader, environmentSettings, sEnv);
-    Planner planner = PlannerFactoryUtil.createPlanner(executor,
+    Executor executor = (Executor) lookupExecutor(classLoader, settings, sEnv);
+    Planner planner = createPlanner(executor,
             (TableConfig) tableConfig,
             Thread.currentThread().getContextClassLoader(),
             (ModuleManager) moduleManager,
