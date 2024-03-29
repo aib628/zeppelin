@@ -757,7 +757,7 @@
             </relocation>
             <relocation>
               <pattern>com.google</pattern>
-              <shadedPattern>org.apache.zeppelin.shaded.com.google</shadedPattern>
+              <shadedPattern>shaded.org.apache.zeppelin.com.google</shadedPattern>
             </relocation>
           </relocations>
           <outputFile>${project.basedir}/../../interpreter/${interpreter.name}/zeppelin-flink-${project.version}-${flink.scala.binary.version}.jar</outputFile>
